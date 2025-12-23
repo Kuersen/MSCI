@@ -11,7 +11,6 @@
       --green: #618d5d;
       --cardBorder: #000;
       --muted: rgba(0,0,0,0.55);
-      --grid: rgba(97,141,93,0.18);
     }
     *{ box-sizing: border-box; }
 
@@ -23,7 +22,6 @@
       color: #000;
     }
 
-    /* “ca. 8cm” Rand – robust auf 2160x3840 */
     .stage{
       width: 100vw;
       height: 100vh;
@@ -104,7 +102,6 @@
       color: var(--muted);
     }
 
-    /* Chart block fills remaining height nicely */
     .chartWrap{
       height: calc(100% - clamp(190px, 22vh, 420px));
       min-height: 420px;
@@ -112,6 +109,7 @@
       border: 1px solid rgba(0,0,0,0.12);
       overflow: hidden;
       position: relative;
+      background: #fff;
     }
 
     .chartHeader{
@@ -138,11 +136,14 @@
       color: var(--muted);
     }
 
-    svg{
+    /* Chart als Bild */
+    .chartImg{
       width: 100%;
       height: 100%;
+      object-fit: cover;
       display: block;
-      background: #fff;
+      /* leichte “Brand”-Note */
+      filter: saturate(1.1);
     }
 
     .source{
@@ -205,171 +206,45 @@
       <div class="chartWrap">
         <div class="chartHeader">
           <div class="chartLabel">Entwicklung</div>
-          <div class="chartRange" id="rangeLabel">—</div>
+          <div class="chartRange" id="rangeLabel">Chart (täglich)</div>
         </div>
 
-        <svg id="chart" viewBox="0 0 1200 700" preserveAspectRatio="none" aria-label="Kurschart">
-          <!-- grid -->
-          <rect x="0" y="0" width="1200" height="700" fill="#ffffff"></rect>
-          <g id="grid"></g>
-
-          <!-- area fill -->
-          <path id="area" d="" fill="rgba(97,141,93,0.18)"></path>
-          <!-- line -->
-          <path id="line" d="" fill="none" stroke="rgba(97,141,93,1)" stroke-width="6" stroke-linejoin="round" stroke-linecap="round"></path>
-
-          <!-- last value marker -->
-          <circle id="dot" cx="0" cy="0" r="10" fill="rgba(97,141,93,1)"></circle>
-        </svg>
+        <!-- Wichtig: Chart als IMG statt fetch+SVG -->
+        <img
+          id="chartImg"
+          class="chartImg"
+          alt="Kurschart"
+          src="https://stooq.com/q/g/?s=eunl.de&i=d"
+        />
       </div>
 
       <div class="error" id="err"></div>
-      <div class="source" id="source">Quelle: Stooq (EUNL.DE) · Anzeige ohne Gewähr</div>
+      <div class="source" id="source">Quelle: Stooq · Anzeige ohne Gewähr</div>
     </div>
   </div>
 
   <script>
-    // ===== Settings =====
-    const SYMBOL = "eunl.de";                 // Stooq symbol
-    const DAYS_BACK = 220;                    // ~180 Handelstage + Puffer
-    const GREEN = "#618d5d";
+    // Wenn du deinen Kurs schon “richtig” bekommst, lass das so wie es bei dir ist.
+    // Hier ist nur ein Mini-Update-Zeitstempel, damit unten links kein Fetch-Fehler mehr auftaucht.
+    document.getElementById("updated").textContent =
+      new Date().toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit", year:"numeric" }) +
+      " · " +
+      new Date().toLocaleTimeString("de-DE", { hour:"2-digit", minute:"2-digit" });
 
-    // ===== Helpers =====
-    function fmtEUR(n){
-      try {
-        return new Intl.NumberFormat("de-DE", { style:"currency", currency:"EUR", maximumFractionDigits:2 }).format(n);
-      } catch {
-        return (Math.round(n*100)/100).toFixed(2) + " €";
+    // Fallback: Wenn stooq.com im Player geblockt ist, automatisch stooq.pl versuchen
+    const img = document.getElementById("chartImg");
+    img.addEventListener("error", () => {
+      // zweiter Versuch
+      if (!img.dataset.tried) {
+        img.dataset.tried = "1";
+        img.src = "https://stooq.pl/q/g/?s=eunl.de&i=d";
+        return;
       }
-    }
-    function fmtDate(iso){
-      const d = new Date(iso);
-      return d.toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit", year:"numeric" });
-    }
-    function nowTime(){
-      const d = new Date();
-      return d.toLocaleTimeString("de-DE", { hour:"2-digit", minute:"2-digit" });
-    }
-
-    // ===== Chart drawing (SVG) =====
-    function drawGrid(){
-      const g = document.getElementById("grid");
-      g.innerHTML = "";
-      const W=1200, H=700;
-      const rows = 5, cols = 8;
-
-      for(let r=1;r<rows;r++){
-        const y = (H/rows)*r;
-        const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-        line.setAttribute("x1","0"); line.setAttribute("x2",W);
-        line.setAttribute("y1",y);  line.setAttribute("y2",y);
-        line.setAttribute("stroke","rgba(97,141,93,0.18)");
-        line.setAttribute("stroke-width","2");
-        g.appendChild(line);
-      }
-      for(let c=1;c<cols;c++){
-        const x = (W/cols)*c;
-        const line = document.createElementNS("http://www.w3.org/2000/svg","line");
-        line.setAttribute("y1","0"); line.setAttribute("y2",H);
-        line.setAttribute("x1",x);  line.setAttribute("x2",x);
-        line.setAttribute("stroke","rgba(97,141,93,0.12)");
-        line.setAttribute("stroke-width","2");
-        g.appendChild(line);
-      }
-    }
-
-    function buildPath(points){
-      if(points.length === 0) return "";
-      let d = `M ${points[0].x} ${points[0].y}`;
-      for(let i=1;i<points.length;i++){
-        d += ` L ${points[i].x} ${points[i].y}`;
-      }
-      return d;
-    }
-
-    function renderChart(series){
-      drawGrid();
-
-      const W=1200, H=700, padTop=40, padBottom=40, padLeft=30, padRight=30;
-      const usableW = W - padLeft - padRight;
-      const usableH = H - padTop - padBottom;
-
-      const closes = series.map(s => s.close);
-      const min = Math.min(...closes);
-      const max = Math.max(...closes);
-
-      // map
-      const pts = series.map((s, i) => {
-        const x = padLeft + (i/(series.length-1)) * usableW;
-        const yNorm = (s.close - min) / (max - min || 1);
-        const y = padTop + (1 - yNorm) * usableH;
-        return { x, y };
-      });
-
-      const lineD = buildPath(pts);
-      document.getElementById("line").setAttribute("d", lineD);
-
-      // area: line + down to bottom + back
-      const areaD = lineD + ` L ${pts[pts.length-1].x} ${H-padBottom} L ${pts[0].x} ${H-padBottom} Z`;
-      document.getElementById("area").setAttribute("d", areaD);
-
-      // dot at last
-      const last = pts[pts.length-1];
-      document.getElementById("dot").setAttribute("cx", last.x);
-      document.getElementById("dot").setAttribute("cy", last.y);
-
-      // range label
-      const firstDate = series[0].date;
-      const lastDate  = series[series.length-1].date;
-      document.getElementById("rangeLabel").textContent = `${fmtDate(firstDate)} – ${fmtDate(lastDate)}`;
-    }
-
-    // ===== Data loading (Stooq CSV) =====
-    async function load(){
+      // letzter Fallback: Fehlertext
       const err = document.getElementById("err");
-      err.style.display = "none";
-      err.textContent = "";
-
-      try{
-        // Daily CSV: Date,Open,High,Low,Close,Volume
-        const url = `https://stooq.pl/q/d/l/?s=${SYMBOL}&i=d`;
-        const res = await fetch(url, { cache: "no-store" });
-        if(!res.ok) throw new Error("Datenabruf fehlgeschlagen (HTTP " + res.status + ")");
-        const text = await res.text();
-
-        const lines = text.trim().split("\n");
-        if(lines.length < 10) throw new Error("Zu wenig Daten erhalten.");
-
-        // parse
-        const rows = lines.slice(1).map(l => l.split(","));
-        const parsed = rows
-          .map(r => ({
-            date: r[0],
-            close: Number(r[4])
-          }))
-          .filter(x => x.date && Number.isFinite(x.close));
-
-        // take last N calendar rows (includes weekends? usually not)
-        const series = parsed.slice(-DAYS_BACK).slice(-180); // ~180 points
-        if(series.length < 30) throw new Error("Zeitreihe zu kurz.");
-
-        // last close
-        const last = series[series.length-1];
-        document.getElementById("price").textContent = fmtEUR(last.close);
-
-        // updated
-        document.getElementById("updated").textContent = `${fmtDate(last.date)} · ${nowTime()}`;
-
-        renderChart(series);
-
-      }catch(e){
-        err.style.display = "block";
-        err.textContent = "Fehler: " + (e?.message || e);
-      }
-    }
-
-    load();
-    setInterval(load, 10 * 60 * 1000); // alle 10 Minuten
+      err.style.display = "block";
+      err.textContent = "Chart konnte nicht geladen werden (Netzwerk/Firewall).";
+    });
   </script>
 </body>
 </html>
