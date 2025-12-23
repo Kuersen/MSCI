@@ -117,7 +117,7 @@
       height: 100%;
     }
 
-    /* Chart */
+    /* Chart-Bereich */
     .chartBox{
       border-radius: 18px;
       border: 1px solid rgba(0,0,0,0.12);
@@ -201,7 +201,7 @@
           </div>
         </div>
 
-        <!-- Kurs (TradingView Live-Ticker) -->
+        <!-- Kurs (Live via TradingView) -->
         <div class="priceBox">
           <div class="priceLabel">Aktueller Kurs (live)</div>
 
@@ -209,7 +209,7 @@
             <div class="tradingview-widget-container">
               <div class="tradingview-widget-container__widget"></div>
 
-              <script
+              <script 
                 type="text/javascript"
                 src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js"
                 async>
@@ -226,40 +226,46 @@
         </div>
       </div>
 
-      <!-- Chart: Mini Symbol Overview (keine Minuten-Ansicht möglich) -->
+      <!-- Chart-Bereich: Symbol Overview (groß, stabil, keine Minutenansicht) -->
       <div class="chartBox">
         <div class="chartHeader">
           <div class="pill">Entwicklung</div>
-          <div class="pill pillMuted">Erstansicht: Langfristig (≥ 15 Jahre)</div>
+          <div class="pill pillMuted">Erstansicht: 1 Jahr</div>
         </div>
 
-        <div class="tradingview-widget-container" style="height:100%;width:100%">
-          <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
+        <div class="tradingview-widget-container" style="height:100%;width:100%;">
+          <div class="tradingview-widget-container__widget" style="height:100%;width:100%;"></div>
 
-          <script
+          <script 
             type="text/javascript"
-            src="https://s3.tradingview.com/external-embedding/embed-widget-mini-symbol-overview.js"
+            src="https://s3.tradingview.com/external-embedding/embed-widget-symbol-overview.js"
             async>
           {
-            "symbol": "XETR:EUNL",
+            "symbols": [
+              [
+                "iShares Core MSCI World",
+                "XETR:EUNL|1Y"
+              ]
+            ],
+            "chartOnly": false,
             "width": "100%",
             "height": "100%",
             "locale": "de_DE",
-
-            "dateRange": "ALL",          // <- zeigt maximale Historie (mind. 15J, wenn verfügbar)
-            "chartOnly": true,           // <- nur Chart, keine extra UI-Elemente
-            "noTimeScale": true,         // <- keine Zeitskala/Buttons -> kein 1m möglich
-
             "colorTheme": "light",
-            "isTransparent": false,
+            "autosize": true,
 
-            /* Brand-Farben */
             "trendLineColor": "rgba(97, 141, 93, 1)",
-            "underLineColor": "rgba(97, 141, 93, 0.25)",
+            "underLineColor": "rgba(97, 141, 93, 0.22)",
             "underLineBottomColor": "rgba(97, 141, 93, 0)",
-            "gridLineColor": "rgba(97, 141, 93, 0.12)"
+            "gridLineColor": "rgba(97, 141, 93, 0.12)",
+
+            "scalePosition": "right",
+            "scaleMode": "Normal",
+            "fontFamily": "Arial, sans-serif",
+            "fontSize": "18"
           }
           </script>
+
         </div>
 
         <div class="source">Quelle: TradingView · Anzeige ohne Gewähr</div>
