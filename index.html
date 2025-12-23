@@ -9,8 +9,8 @@
     :root{
       --bg: #cbf1f0;
       --green: #618d5d;
-      --cardBorder: #000;
       --muted: rgba(0,0,0,0.55);
+      --border: #000;
     }
     *{ box-sizing: border-box; }
 
@@ -22,10 +22,11 @@
       color: #000;
     }
 
+    /* “ca. 8cm” Rand: robust über clamp (4K Portrait) */
     .stage{
       width: 100vw;
       height: 100vh;
-      padding: clamp(70px, 6vh, 300px);
+      padding: clamp(80px, 6vh, 320px);
       display: grid;
       place-items: center;
     }
@@ -34,27 +35,29 @@
       width: 100%;
       height: 100%;
       background: #fff;
-      border: 2px solid var(--cardBorder);
+      border: 2px solid var(--border);
       border-radius: 18px;
       padding: clamp(26px, 3.2vh, 64px);
       position: relative;
       overflow: hidden;
+      display: grid;
+      grid-template-rows: auto auto 1fr;
+      gap: clamp(14px, 1.6vh, 28px);
     }
 
     .title{
-      font-size: clamp(40px, 3.6vh, 76px);
+      font-size: clamp(42px, 3.6vh, 78px);
       font-weight: 900;
       color: var(--green);
       letter-spacing: 0.01em;
-      margin: 0 0 clamp(12px, 1.2vh, 22px) 0;
+      margin: 0;
     }
 
-    .metaRow{
+    .topRow{
       display: grid;
       grid-template-columns: 1.2fr 1fr;
       gap: clamp(18px, 2vh, 36px);
       align-items: start;
-      margin-bottom: clamp(14px, 1.8vh, 30px);
     }
 
     .meta{
@@ -64,7 +67,7 @@
 
     .kv{
       display: grid;
-      grid-template-columns: 240px 1fr;
+      grid-template-columns: 260px 1fr;
       gap: 18px;
       align-items: baseline;
     }
@@ -88,9 +91,8 @@
     }
 
     .price{
-      font-size: clamp(72px, 6.2vh, 132px);
+      font-size: clamp(76px, 6.2vh, 140px);
       font-weight: 950;
-      color: #000;
       line-height: 1;
       font-variant-numeric: tabular-nums;
     }
@@ -102,14 +104,13 @@
       color: var(--muted);
     }
 
-    .chartWrap{
-      height: calc(100% - clamp(190px, 22vh, 420px));
-      min-height: 420px;
+    /* Chart container */
+    .chartBox{
       border-radius: 18px;
       border: 1px solid rgba(0,0,0,0.12);
       overflow: hidden;
       position: relative;
-      background: #fff;
+      min-height: 520px;
     }
 
     .chartHeader{
@@ -121,29 +122,27 @@
       justify-content: space-between;
       gap: 12px;
       pointer-events: none;
-      z-index: 2;
+      z-index: 5;
     }
 
     .chartLabel{
       font-size: clamp(18px, 1.6vh, 26px);
       font-weight: 900;
       color: var(--green);
+      background: rgba(255,255,255,0.75);
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.08);
     }
 
-    .chartRange{
+    .chartHint{
       font-size: clamp(16px, 1.4vh, 22px);
       font-weight: 800;
       color: var(--muted);
-    }
-
-    /* Chart als Bild */
-    .chartImg{
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      display: block;
-      /* leichte “Brand”-Note */
-      filter: saturate(1.1);
+      background: rgba(255,255,255,0.75);
+      padding: 8px 12px;
+      border-radius: 999px;
+      border: 1px solid rgba(0,0,0,0.08);
     }
 
     .source{
@@ -156,22 +155,18 @@
       letter-spacing: 0.02em;
     }
 
-    .error{
-      position: absolute;
-      left: clamp(18px, 1.8vh, 28px);
-      bottom: clamp(14px, 1.6vh, 22px);
-      font-size: clamp(14px, 1.2vh, 18px);
-      color: rgba(120,0,0,0.8);
-      font-weight: 800;
-      display:none;
-      max-width: 70%;
+    /* TradingView widget must have a fixed container height */
+    .tvWrap{
+      width: 100%;
+      height: 100%;
+      min-height: 520px;
     }
 
+    /* Fallback layout for small screens */
     @media (max-width: 1200px){
-      .kv{ grid-template-columns: 1fr; }
+      .topRow{ grid-template-columns: 1fr; }
       .priceBig{ justify-self: start; text-align: left; }
-      .metaRow{ grid-template-columns: 1fr; }
-      .chartWrap{ height: calc(100% - 520px); }
+      .kv{ grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -181,70 +176,72 @@
     <div class="card">
       <h1 class="title">iShares Core MSCI World UCITS ETF (Acc)</h1>
 
-      <div class="metaRow">
+      <div class="topRow">
         <div class="meta">
           <div class="kv">
-            <div class="k">Fondsvolumen (ca.)</div>
-            <div class="v" id="aum">≈ 109 Mrd. €</div>
+            <div class="k">ISIN / WKN / Börse</div>
+            <div class="v">IE00B4L5Y983 / A0RPWH / XETRA</div>
           </div>
           <div class="kv">
-            <div class="k">ISIN / WKN / Ticker</div>
-            <div class="v">IE00B4L5Y983 / A0RPWH / EUNL.DE</div>
+            <div class="k">Ticker</div>
+            <div class="v">XETR:EUNL</div>
           </div>
           <div class="kv">
-            <div class="k">Letztes Update</div>
-            <div class="v" id="updated">—</div>
+            <div class="k">Fondsvolumen</div>
+            <div class="v">—</div>
           </div>
         </div>
 
         <div class="priceBig">
-          <div class="price" id="price">—</div>
-          <div class="priceSub" id="priceSub">Kurs (letzter Schlusskurs)</div>
+          <div class="price" id="price">€ —</div>
+          <div class="priceSub">Kurs (wird vom Chart-Anbieter bereitgestellt)</div>
         </div>
       </div>
 
-      <div class="chartWrap">
+      <div class="chartBox">
         <div class="chartHeader">
           <div class="chartLabel">Entwicklung</div>
-          <div class="chartRange" id="rangeLabel">Chart (täglich)</div>
+          <div class="chartHint">Live-Chart (TradingView)</div>
         </div>
 
-        <!-- Wichtig: Chart als IMG statt fetch+SVG -->
-        <img
-          id="chartImg"
-          class="chartImg"
-          alt="Kurschart"
-          src="https://stooq.com/q/g/?s=eunl.de&i=d"
-        />
-      </div>
+        <div class="tvWrap tradingview-widget-container">
+          <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
 
-      <div class="error" id="err"></div>
-      <div class="source" id="source">Quelle: Stooq · Anzeige ohne Gewähr</div>
+          <script type="text/javascript"
+            src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
+            async>
+          {
+            "symbol": "XETR:EUNL",
+            "interval": "D",
+            "timezone": "Europe/Berlin",
+            "theme": "light",
+            "style": "1",
+            "locale": "de_DE",
+            "enable_publishing": false,
+            "hide_top_toolbar": true,
+            "hide_legend": false,
+            "allow_symbol_change": false,
+            "save_image": false,
+            "calendar": false,
+            "studies": [],
+            "support_host": "https://www.tradingview.com",
+            "width": "100%",
+            "height": "100%"
+          }
+          </script>
+        </div>
+
+        <div class="source">Quelle: TradingView · Anzeige ohne Gewähr</div>
+      </div>
     </div>
   </div>
 
   <script>
-    // Wenn du deinen Kurs schon “richtig” bekommst, lass das so wie es bei dir ist.
-    // Hier ist nur ein Mini-Update-Zeitstempel, damit unten links kein Fetch-Fehler mehr auftaucht.
-    document.getElementById("updated").textContent =
-      new Date().toLocaleDateString("de-DE", { day:"2-digit", month:"2-digit", year:"numeric" }) +
-      " · " +
-      new Date().toLocaleTimeString("de-DE", { hour:"2-digit", minute:"2-digit" });
-
-    // Fallback: Wenn stooq.com im Player geblockt ist, automatisch stooq.pl versuchen
-    const img = document.getElementById("chartImg");
-    img.addEventListener("error", () => {
-      // zweiter Versuch
-      if (!img.dataset.tried) {
-        img.dataset.tried = "1";
-        img.src = "https://stooq.pl/q/g/?s=eunl.de&i=d";
-        return;
-      }
-      // letzter Fallback: Fehlertext
-      const err = document.getElementById("err");
-      err.style.display = "block";
-      err.textContent = "Chart konnte nicht geladen werden (Netzwerk/Firewall).";
-    });
+    // Optional: Wir zeigen oben rechts wenigstens eine “zuletzt aktualisiert” Zeit am Kurs.
+    // Den echten Kurs kannst du auch weglassen – TradingView zeigt ihn im Chart selbst.
+    document.getElementById("price").textContent =
+      "€ " + "—";
   </script>
 </body>
 </html>
+
