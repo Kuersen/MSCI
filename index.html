@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
   <title>iShares Core MSCI World – Anzeige</title>
+
   <style>
     :root{
       --bg: #cbf1f0;
@@ -22,11 +23,10 @@
       color: #000;
     }
 
-    /* “ca. 8cm” Rand: robust über clamp (4K Portrait) */
     .stage{
       width: 100vw;
       height: 100vh;
-      padding: clamp(80px, 6vh, 320px);
+      padding: clamp(80px, 6vh, 320px); /* ~ “8cm” je nach Display */
       display: grid;
       place-items: center;
     }
@@ -49,7 +49,6 @@
       font-size: clamp(42px, 3.6vh, 78px);
       font-weight: 900;
       color: var(--green);
-      letter-spacing: 0.01em;
       margin: 0;
     }
 
@@ -67,7 +66,7 @@
 
     .kv{
       display: grid;
-      grid-template-columns: 260px 1fr;
+      grid-template-columns: 280px 1fr;
       gap: 18px;
       align-items: baseline;
     }
@@ -76,7 +75,6 @@
       font-size: clamp(18px, 1.6vh, 28px);
       font-weight: 800;
       color: var(--muted);
-      letter-spacing: 0.02em;
     }
 
     .v{
@@ -85,32 +83,47 @@
       font-variant-numeric: tabular-nums;
     }
 
-    .priceBig{
+    /* Rechts: Live-Kurs (TradingView Single Ticker) */
+    .priceBox{
       justify-self: end;
       text-align: right;
+      display: grid;
+      gap: 10px;
     }
 
-    .price{
-      font-size: clamp(76px, 6.2vh, 140px);
-      font-weight: 950;
-      line-height: 1;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .priceSub{
-      margin-top: 10px;
+    .priceLabel{
       font-size: clamp(18px, 1.6vh, 26px);
       font-weight: 800;
       color: var(--muted);
     }
 
-    /* Chart container */
+    .tickerWrap{
+      width: min(560px, 100%);
+      height: 140px;
+      border-radius: 14px;
+      border: 1px solid rgba(0,0,0,0.12);
+      overflow: hidden;
+      background: #fff;
+    }
+
+    /* TradingView Widget braucht eine feste Höhe */
+    .tradingview-widget-container{
+      width: 100%;
+      height: 100%;
+    }
+    .tradingview-widget-container__widget{
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Chart */
     .chartBox{
       border-radius: 18px;
       border: 1px solid rgba(0,0,0,0.12);
       overflow: hidden;
       position: relative;
-      min-height: 520px;
+      min-height: 600px;
+      background: #fff;
     }
 
     .chartHeader{
@@ -125,24 +138,19 @@
       z-index: 5;
     }
 
-    .chartLabel{
-      font-size: clamp(18px, 1.6vh, 26px);
+    .pill{
+      font-size: clamp(16px, 1.4vh, 22px);
       font-weight: 900;
       color: var(--green);
-      background: rgba(255,255,255,0.75);
+      background: rgba(255,255,255,0.78);
       padding: 8px 12px;
       border-radius: 999px;
       border: 1px solid rgba(0,0,0,0.08);
     }
 
-    .chartHint{
-      font-size: clamp(16px, 1.4vh, 22px);
-      font-weight: 800;
+    .pillMuted{
       color: var(--muted);
-      background: rgba(255,255,255,0.75);
-      padding: 8px 12px;
-      border-radius: 999px;
-      border: 1px solid rgba(0,0,0,0.08);
+      font-weight: 800;
     }
 
     .source{
@@ -152,21 +160,13 @@
       font-size: clamp(12px, 1.05vh, 16px);
       color: rgba(0,0,0,0.45);
       font-weight: 700;
-      letter-spacing: 0.02em;
     }
 
-    /* TradingView widget must have a fixed container height */
-    .tvWrap{
-      width: 100%;
-      height: 100%;
-      min-height: 520px;
-    }
-
-    /* Fallback layout for small screens */
     @media (max-width: 1200px){
       .topRow{ grid-template-columns: 1fr; }
-      .priceBig{ justify-self: start; text-align: left; }
+      .priceBox{ justify-self: start; text-align: left; }
       .kv{ grid-template-columns: 1fr; }
+      .tickerWrap{ width: 100%; }
     }
   </style>
 </head>
@@ -182,49 +182,74 @@
             <div class="k">ISIN / WKN / Börse</div>
             <div class="v">IE00B4L5Y983 / A0RPWH / XETRA</div>
           </div>
+
           <div class="kv">
             <div class="k">Ticker</div>
             <div class="v">XETR:EUNL</div>
           </div>
+
+          <!-- Fondsvolumen sichtbar (hier als Wert eintragen) -->
           <div class="kv">
             <div class="k">Fondsvolumen</div>
-            <div class="v">—</div>
+            <div class="v">≈ 109 Mrd. €</div>
           </div>
         </div>
 
-        <div class="priceBig">
-          <div class="price" id="price">€ —</div>
-          <div class="priceSub">Kurs (wird vom Chart-Anbieter bereitgestellt)</div>
+        <!-- Live-Kurs sichtbar (TradingView Single Ticker) -->
+        <div class="priceBox">
+          <div class="priceLabel">Aktueller Kurs (live)</div>
+
+          <div class="tickerWrap">
+            <div class="tradingview-widget-container">
+              <div class="tradingview-widget-container__widget"></div>
+              <script
+                type="text/javascript"
+                src="https://s3.tradingview.com/external-embedding/embed-widget-single-quote.js"
+                async>
+              {
+                "symbol": "XETR:EUNL",
+                "width": "100%",
+                "colorTheme": "light",
+                "isTransparent": false,
+                "locale": "de_DE"
+              }
+              </script>
+            </div>
+          </div>
         </div>
       </div>
 
+      <!-- 10-Jahres Chart -->
       <div class="chartBox">
         <div class="chartHeader">
-          <div class="chartLabel">Entwicklung</div>
-          <div class="chartHint">Live-Chart (TradingView)</div>
+          <div class="pill">Entwicklung</div>
+          <div class="pill pillMuted">Zeitraum: 10 Jahre</div>
         </div>
 
-        <div class="tvWrap tradingview-widget-container">
+        <div class="tradingview-widget-container" style="height:100%;width:100%">
           <div class="tradingview-widget-container__widget" style="height:100%;width:100%"></div>
-
-          <script type="text/javascript"
+          <script
+            type="text/javascript"
             src="https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js"
             async>
           {
             "symbol": "XETR:EUNL",
-            "interval": "D",
+            "interval": "W",
             "timezone": "Europe/Berlin",
             "theme": "light",
             "style": "1",
             "locale": "de_DE",
             "enable_publishing": false,
-            "hide_top_toolbar": true,
-            "hide_legend": false,
             "allow_symbol_change": false,
             "save_image": false,
-            "calendar": false,
-            "studies": [],
-            "support_host": "https://www.tradingview.com",
+
+            /* wichtig für die Range-Leiste */
+            "hide_top_toolbar": false,
+            "hide_side_toolbar": true,
+
+            /* Versuch: direkt 10Y als Startansicht */
+            "range": "10Y",
+
             "width": "100%",
             "height": "100%"
           }
@@ -235,13 +260,5 @@
       </div>
     </div>
   </div>
-
-  <script>
-    // Optional: Wir zeigen oben rechts wenigstens eine “zuletzt aktualisiert” Zeit am Kurs.
-    // Den echten Kurs kannst du auch weglassen – TradingView zeigt ihn im Chart selbst.
-    document.getElementById("price").textContent =
-      "€ " + "—";
-  </script>
 </body>
 </html>
-
